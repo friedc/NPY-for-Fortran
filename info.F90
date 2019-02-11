@@ -4,14 +4,16 @@ program main
    character(len=*), parameter    :: filename = "test.npy"
    character(len=:), allocatable  :: header, descr
    integer, allocatable           :: dims(:)
-   integer                        :: stat
+   integer                        :: stat, i
    logical                        :: fortran_order
+   real(8), allocatable           :: vec(:)
 
-   open (unit=17, file=filename, access="stream", form="unformatted", iostat=stat)
+   call read_dblvec(filename, vec)
 
-   header = get_header(17)
-   call parse_header(header, descr, dims, fortran_order)
-   close (17)
+   write (*,*) "len(vec)", shape(vec)
+   do i = 1,size(vec)
+      write (*,'(F12.7)') vec(i)
+   enddo
 contains
    function get_header(unitnum) result(header)
       implicit none
@@ -67,7 +69,7 @@ contains
       shape_idx = index(header_str, "'shape':")
 
       descr_str = get_keystr(header_str(descr_idx:fort_idx - 1))
-      descr_str = descr_str(2:len(descr_str) - 1)
+      descr = descr_str(2:len(descr_str) - 1)
 
       fort_str = get_keystr(header_str(fort_idx:shape_idx - 1))
       if (fort_str == "True") then
@@ -134,5 +136,27 @@ contains
          stop 9
       endif
    end function str2int
+
+   subroutine read_dblvec(filename, vec)
+      implicit none
+      character(len=*), intent(in)    :: filename
+      real(8), allocatable            :: vec(:)
+
+      open (unit=17, file=filename, access="stream", form="unformatted", iostat=stat)
+
+      header = get_header(17)
+      call parse_header(header, descr, dims, fortran_order)
+
+      if("<f8" /= descr) then
+         write (*,*) filename, " is not double"
+         stop 17
+      endif
+
+      allocate(vec(dims(1)))
+      read(17) vec
+
+      close (17)
+
+   end subroutine read_dblvec
 
 end program main
