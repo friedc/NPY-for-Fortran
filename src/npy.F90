@@ -23,6 +23,7 @@ module m_npy
          write_cmplx_dbl_3dT
 
    end interface save_npy
+
    interface add_npz
       module procedure addrpl_int8_vec, addrpl_int8_mtx, &
          addrpl_int16_vec, addrpl_int16_mtx, &
@@ -33,6 +34,10 @@ module m_npy
          addrpl_cmplx_dbl_vec, addrpl_cmplx_dbl_mtx, &
          addrpl_cmplx_sng_vec, addrpl_cmplx_sng_mtx
    end interface add_npz
+
+   interface read_npy
+      module procedure read_dbl_vec
+   end interface read_npy
 
 contains
    subroutine run_sys(cmd, stat)
@@ -1044,12 +1049,13 @@ contains
    end function shape_str
 
    function get_header(unitnum) result(header)
+      use iso_c_binding
       implicit none
       integer, intent(in)             :: unitnum
       character(len=6)                :: magic
       character(len=1)                :: byte_tmp
       character(len=:), allocatable   :: header
-      integer                         :: i, major, minor, header_size
+      integer                         :: major, minor, header_size, stat
       integer(kind=c_int16_t)         :: int16
       integer(kind=c_int32_t)         :: int32
 
@@ -1165,10 +1171,15 @@ contains
       endif
    end function str2int
 
-   subroutine read_dblvec(filename, vec)
+   subroutine read_dbl_vec(filename, vec)
       implicit none
       character(len=*), intent(in)    :: filename
       real(8), allocatable            :: vec(:)
+      
+      character(len=:), allocatable   :: descr, header
+      logical                         :: fortran_order
+      integer                         :: stat
+      integer, allocatable            :: dims(:)
 
       open (unit=17, file=filename, access="stream", form="unformatted", iostat=stat)
 
@@ -1180,10 +1191,15 @@ contains
          stop 17
       endif
 
+      if(size(dims) /= 1) then
+         write (*,*) filename, "is not 1D"
+         stop 18
+      endif
+
       allocate (vec(dims(1)))
       read (17) vec
 
       close (17)
 
-   end subroutine read_dblvec
+   end subroutine read_dbl_vec
 end module m_npy

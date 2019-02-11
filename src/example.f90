@@ -2,10 +2,11 @@ program main
    use m_npy
    use endian_swap
 
-   complex(8)       :: a(10, 20), b(10), c(2, 3, 4)
-   integer(4)       :: i, j, k
-   real(4)  :: test1
-   real(8)  :: test2
+   complex(8)           :: a(10, 20), c(2, 3, 4)
+   integer(4)           :: i, j, k
+   real(4)              :: test1
+   real(8)              :: test2, b(100)
+   real(8), allocatable :: b_read(:)
 
    do i = 1, size(a, 1)
       do j = 1, size(a, 2)
@@ -16,6 +17,16 @@ program main
    do i = 1, size(b, 1)
       b(i) = 2*i
    enddo
+
+   call save_npy("b.npy", b)
+   call read_npy("b.npy", b_read)
+
+   if(any(b /= b_read)) then
+      write (*,*) "write/read test failed"
+      stop 
+   else
+      write (*,*) "read_dbl_vec test succeded"
+   endif
 
    do i = 1, size(c, 1)
       do j = 1, size(c, 2)
